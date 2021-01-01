@@ -7,6 +7,7 @@ import 'package:internship_tak/screens/add_post.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:internship_tak/screens/profile_screen.dart';
 import 'package:internship_tak/view/search_view.dart';
+import 'package:internship_tak/filter_screen.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -14,17 +15,82 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   void _showScaffold(String message) {
     _scaffoldKey.currentState.showSnackBar(SnackBar(
       content: Text(message),
     ));
   }
+
   DatabaseReference _userRef =
       new FirebaseDatabase().reference().child("Users");
 
+  List _allResults = [];
+
+  List _resultsList = [];
+
+  Future resultsLoaded;
   FirebaseAuth _user = FirebaseAuth.instance;
+
+  TextEditingController searchController = new TextEditingController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    resultsLoaded = getSearch();
+  }
+
+  TextEditingController _searchController = TextEditingController();
+
+  _onSearchChanged() {
+    searchResultsList();
+  }
+
+  searchResultsList() {
+    var showResults = [];
+
+    if (_searchController.text != "") {
+      for (var tripSnapshot in _allResults) {
+        showResults.add(tripSnapshot);
+      }
+    } else {
+      showResults = List.from(_allResults);
+    }
+    setState(() {
+      _resultsList = showResults;
+    });
+  }
+
+  getSearch() async {
+    final uid = await _user.currentUser.uid;
+    var data = await Firestore.instance
+        .collection("Users")
+        .doc(uid)
+        .collection("Posts")
+        .where('title', isEqualTo: _searchController.text)
+        .get();
+    setState(() {
+      _allResults = data.docs;
+    });
+    searchResultsList();
+   
+    return "completed";
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    print(getSearch());
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
   rejectJob(String jobId) {
     return FirebaseFirestore.instance
         .collection('Users')
@@ -33,8 +99,6 @@ class _HomeState extends State<Home> {
         .doc(jobId)
         .delete();
   }
-
-  TextEditingController searchController = new TextEditingController();
 
   Future updatePost(jobId, String title, String body) async {
     try {
@@ -64,8 +128,11 @@ class _HomeState extends State<Home> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: GestureDetector(
-              onTap: (){},
-              child: Icon(Icons.filter)),
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => FilterScreen()));
+                },
+                child: Icon(Icons.filter)),
           )
         ],
         elevation: 0,
@@ -154,19 +221,18 @@ class _HomeState extends State<Home> {
                     Expanded(
                         child: TextField(
                       controller: searchController,
+                      onChanged: (String query) {
+                        getSearch();
+                      },
                       decoration: InputDecoration(
                           hintText: "search", border: InputBorder.none),
                     )),
                     InkWell(
                         onTap: () {
-                          if (searchController.text != "") {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => SearchView(
-                                          search: searchController.text,
-                                        )));
-                          }
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SearchView(results: _resultsList,)));
                         },
                         child: Container(child: Icon(Icons.search)))
                   ],
@@ -183,7 +249,7 @@ class _HomeState extends State<Home> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return Text("Your Cart is Empty");
+                    return Text("Nothing to Show");
                   }
                   if (snapshot.hasData) {
                     return Column(

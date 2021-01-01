@@ -28,7 +28,10 @@ class _AddPostState extends State<AddPost> {
     final ref = fb.reference();
     return Scaffold(
       appBar: AppBar(
-        title: Text("add post"),
+        backgroundColor: Colors.purpleAccent,
+        title: Text("Add todo"),
+        centerTitle: true,
+        
         elevation: 0.0,
       ),
       body: Form(

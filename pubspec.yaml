@@ -37,7 +37,11 @@ dependencies:
   animated_text_kit:
   provider:
   timeago:
-  
+  url_launcher:
+  permission_handler:
+  image_gallery_saver:
+  dio:
+  cached_network_image:
 
 dev_dependencies:
   flutter_test:

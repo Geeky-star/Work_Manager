@@ -1,51 +1,85 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class SearchView extends StatefulWidget {
-  final String search;
+  final List results;
 
-  SearchView({@required this.search});
+  const SearchView({this.results});
 
   @override
   _SearchViewState createState() => _SearchViewState();
 }
 
 class _SearchViewState extends State<SearchView> {
-  List lists = new List();
+  List _allResults = [];
+
+  List _resultsList = [];
+
+  Future resultsLoaded;
   FirebaseAuth _user = FirebaseAuth.instance;
 
   TextEditingController searchController = new TextEditingController();
 
-  getSearchWallpaper(String searchQuery) async {
-    setState(() {});
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    resultsLoaded = getSearch();
   }
 
-  List<String> listData = [];
-/*
-Stream<QuerySnapshot> listRef = Firestore.instance
-    .collection("Users")
-    .document(_user.currentUser.uid)
-    .collection("Posts")
-    .snapshots();
-listRef.forEach((field) {
-  field.documents.asMap().forEach((index, data) {
-    listData.add(field.documents[index]["title"]);
-  });
-});
-*/
-  final CollectionReference _usersRef =
-      FirebaseFirestore.instance.collection("Users");
-  final dbRef = FirebaseDatabase.instance
-      .reference()
-      .child("Users")
-      .orderByChild('title');
+  TextEditingController _searchController = TextEditingController();
+
+  _onSearchChanged() {
+    searchResultsList();
+  }
+
+  searchResultsList() {
+    var showResults = [];
+
+    if (_searchController.text != "") {
+      for (var tripSnapshot in _allResults) {
+        showResults.add(tripSnapshot);
+      }
+    } else {
+      showResults = List.from(_allResults);
+    }
+    setState(() {
+      _resultsList = showResults;
+    });
+  }
+
+  getSearch() async {
+    final uid = await _user.currentUser.uid;
+    var data = await Firestore.instance
+        .collection("Users")
+        .doc(uid)
+        .collection("Posts")
+        .where('title', isEqualTo: _searchController.text)
+        .get();
+    setState(() {
+      _allResults = data.docs;
+    });
+    searchResultsList();
+    print("data is");
+    print(data.size);
+    print(data.docs);
+    print("_allresults");
+    print(_allResults);
+    return "completed";
+  }
 
   @override
   void initState() {
     super.initState();
+    print(getSearch());
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,91 +90,61 @@ listRef.forEach((field) {
           elevation: 0.0,
         ),
         backgroundColor: Colors.white,
-        body: SingleChildScrollView(
-            child: Container(
-                child: Column(children: <Widget>[
-          SizedBox(
-            height: 16,
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Color(0xfff5f8fd),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            margin: EdgeInsets.symmetric(horizontal: 24),
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                    child: TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                      hintText: "search todos", border: InputBorder.none),
-                ))
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 30,
-          ),
-          ListView.builder(
-            itemCount: listData.length,
-            itemBuilder: (context, data) {
-              return Text(data.toString());
-            },
-          )
-        ]))));
-  }
-
-  Widget _buildListItem(BuildContext context, DocumentSnapshot document) {
-    return ListView(
-        shrinkWrap: true,
-        physics: ClampingScrollPhysics(),
-        children: [
-          SizedBox(
-            height: 20,
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Card(
-              elevation: 4.0,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18.0)),
-              child: ListTile(
-                title: Container(
-                  height: 150,
+        body: ListView.builder(
+            itemCount: _resultsList.length,
+            itemBuilder: (context, index) {
+              return Container(
+                height: 100,
+                child: Card(
+                  margin: EdgeInsets.all(12.0),
+                  elevation: 4.0,
                   child: Column(
-                    children: <Widget>[
-                      Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            document["title"],
-                            style: TextStyle(
-                                fontSize: 30, fontWeight: FontWeight.w700),
-                          )),
+                    children: [
+                      Text(
+                       _resultsList[index]['title'],
+                        style: TextStyle(
+                            fontSize: 25, fontWeight: FontWeight.w600),
+                      ),
                       SizedBox(
-                        width: 30,
+                        height: 6,
                       ),
                       Text(
-                        document['body'],
-                        style: TextStyle(color: Colors.black, fontSize: 17),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          IconButton(
-                            onPressed: () {},
-                            icon: Icon(Icons.delete, color: Colors.black),
-                          ),
-                        ],
+                         _resultsList[index]['body'],
+                        style: TextStyle(fontSize: 18),
                       ),
                     ],
                   ),
                 ),
+              );
+            }));
+  }
+
+  Widget _buildListItem(BuildContext context) {
+    return ListView.builder(
+        itemCount: _allResults.length,
+        itemBuilder: (context, index) {
+          return Container(
+            height: 100,
+            child: Card(
+              margin: EdgeInsets.all(12.0),
+              elevation: 4.0,
+              child: Column(
+                children: [
+                  Text(
+                    _allResults[index]['title'],
+                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(
+                    height: 6,
+                  ),
+                  Text(
+                    _allResults[index]['body'],
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ],
               ),
             ),
-          ),
-        ]);
+          );
+        });
   }
 }
