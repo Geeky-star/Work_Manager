@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:internship_tak/authentication/login.dart';
 import 'package:internship_tak/screens/add_post.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:internship_tak/screens/motivation.dart';
 import 'package:internship_tak/screens/profile_screen.dart';
 import 'package:internship_tak/view/search_view.dart';
 import 'package:internship_tak/filter_screen.dart';
@@ -73,7 +74,7 @@ class _HomeState extends State<Home> {
       _allResults = data.docs;
     });
     searchResultsList();
-   
+
     return "completed";
   }
 
@@ -137,7 +138,7 @@ class _HomeState extends State<Home> {
         ],
         elevation: 0,
         backgroundColor: Colors.purpleAccent,
-        title: Text("Your todos"),
+        title: Text("My 2021 Resolution work"),
         centerTitle: true,
       ),
       drawer: Drawer(
@@ -175,6 +176,22 @@ class _HomeState extends State<Home> {
               title: GestureDetector(
                 onTap: () {
                   Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => Motivation()));
+                },
+                child: Text(
+                  "Stay Motivated",
+                  style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+              leading: Icon(Icons.work),
+            ),
+            ListTile(
+              title: GestureDetector(
+                onTap: () {
+                  Navigator.push(context,
                       MaterialPageRoute(builder: (context) => Login()));
                 },
                 child: Text(
@@ -206,68 +223,101 @@ class _HomeState extends State<Home> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(
-                height: 40,
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                margin: EdgeInsets.symmetric(horizontal: 24),
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                        child: TextField(
-                      controller: searchController,
-                      onChanged: (String query) {
-                        getSearch();
-                      },
-                      decoration: InputDecoration(
-                          hintText: "search", border: InputBorder.none),
-                    )),
-                    InkWell(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => SearchView(results: _resultsList,)));
-                        },
-                        child: Container(child: Icon(Icons.search)))
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 16,
-              ),
-              StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection('Users')
-                    .doc(FirebaseAuth.instance.currentUser.uid)
-                    .collection('Posts')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return Text("Nothing to Show");
-                  }
-                  if (snapshot.hasData) {
-                    return Column(
-                      children: [
-                        ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: snapshot.data.documents.length,
-                          itemBuilder: (context, index) => _buildListItem(
-                              context, snapshot.data.documents[index]),
-                        ),
-                        SizedBox(
-                          height: 50,
-                        ),
+              Column(
+                children: [
+                  SizedBox(
+                    height: 40,
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    margin: EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                            child: TextField(
+                          controller: _searchController,
+                          onChanged: (String query) {
+                            getSearch();
+                          },
+                          decoration: InputDecoration(
+                              hintText: "search", border: InputBorder.none),
+                        )),
+                        InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => SearchView(
+                                            results: _resultsList,
+                                          )));
+                              /*    print("you taped me");
+                              AlertDialog alert = AlertDialog(
+                                title: Text("check box"),
+                                content: Column(
+                                  children: [
+                                    Text(_resultsList[0]['title']),
+                                    GestureDetector(
+                                      child: Text("ok"),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                      },
+                                    )
+                                  ],
+                                ),
+                              );
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return alert;
+                                },
+                              );
+*/
+                              //    Navigator.push(
+                              //      context,
+                              //    MaterialPageRoute(
+                              //      builder: (context) => SearchView(results: _resultsList,)));
+                            },
+                            child: Container(child: Icon(Icons.search)))
                       ],
-                    );
-                  }
-                  return Text("Cart is Empty");
-                },
+                    ),
+                  ),
+                  SizedBox(
+                    height: 16,
+                  ),
+                  StreamBuilder(
+                    stream: FirebaseFirestore.instance
+                        .collection('Users')
+                        .doc(FirebaseAuth.instance.currentUser.uid)
+                        .collection('Posts')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Text("Nothing to Show");
+                      }
+                      if (snapshot.hasData) {
+                        return Column(
+                          children: [
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: ClampingScrollPhysics(),
+                              itemCount: snapshot.data.documents.length,
+                              itemBuilder: (context, index) => _buildListItem(
+                                  context, snapshot.data.documents[index]),
+                            ),
+                            SizedBox(
+                              height: 50,
+                            ),
+                          ],
+                        );
+                      }
+                      return Text("No posts to show");
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -320,8 +370,8 @@ class _HomeState extends State<Home> {
                             icon: Icon(Icons.delete, color: Colors.black),
                           ),
                           IconButton(
+                            color: Colors.purple,
                             onPressed: () {
-                              (document.id);
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
