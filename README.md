@@ -1,1 +1,1 @@
-# internship_tak
+# Resolution_App
